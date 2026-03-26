@@ -360,7 +360,7 @@ function ConceptsScreen({ name, onContinue }) {
         {/* ── OBJECTIVE ── */}
         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "14px 18px", marginBottom: 24, textAlign: "center" }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 4 }}>Objective</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b", lineHeight: 1.5 }}>Create a basic web page which can be made accessible on the internet.</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#1e293b", lineHeight: 1.5 }}>Create a basic web page which can be made accessible on the internet.</div>
         </div>
 
         {/* ── WHAT WE WILL DO ── */}
@@ -540,6 +540,7 @@ function Workshop({ name }) {
   const [hoverMode, setHoverMode] = useState(null);
   const [pickedPhoto, setPickedPhoto] = useState(null);
   const [validationError, setValidationError] = useState(null);
+  const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const s = steps[step], last = step === steps.length - 1;
 
   const effectiveSnippet = useMemo(() => { if (step === 3 && pickedPhoto) return `  <img src="${pickedPhoto.url}" alt="${pickedPhoto.label}">`; return s.snippet; }, [step, pickedPhoto, s.snippet]);
@@ -605,6 +606,8 @@ function Workshop({ name }) {
           <div style={{ height: 34, minHeight: 34, display: "flex", alignItems: "center", padding: "0 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", flexShrink: 0 }}>
             {["#ef4444","#eab308","#22c55e"].map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c, marginRight: 6 }} />)}
             <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "1px", marginLeft: 8 }}>Live Preview</span>
+            <div style={{ flex: 1 }} />
+            <button onClick={() => setPreviewFullscreen(true)} title="Fullscreen preview" style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", padding: 2, borderRadius: 4, transition: "color 0.15s" }} onMouseOver={(e) => e.currentTarget.style.color = G} onMouseOut={(e) => e.currentTarget.style.color = "#94a3b8"}>{svgIcon("M120-120v-200h80v120h120v80H120Zm520 0v-80h120v-120h80v200H640ZM120-640v-200h200v80H200v120h-80Zm640 0v-120H640v-80h200v200h-80Z", 16)}</button>
           </div>
           <iframe srcDoc={code || "<html><body style='display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;color:#94a3b8;'><p>Your page appears here as you type...</p></body></html>"} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} title="preview" sandbox="allow-scripts" />
         </div>
@@ -616,6 +619,19 @@ function Workshop({ name }) {
           {last ? (<><button onClick={copyAll} style={{ ...btnBase, background: "#7B3F00", color: "white" }}>Copy HTML</button><button onClick={handleSave} style={{ ...btnBase, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, color: "white" }}>{saved ? "✓ Saved!" : "Save as .html"}</button></>) : (<button onClick={goNext} style={{ ...btnBase, background: G, color: "white" }}>Next →</button>)}
         </div>
       </div>
+      {previewFullscreen && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: "rgba(0,0,0,0.75)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }} onClick={() => setPreviewFullscreen(false)}>
+          <div style={{ width: "90vw", height: "85vh", maxWidth: 1200, background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ height: 38, minHeight: 38, display: "flex", alignItems: "center", padding: "0 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", flexShrink: 0 }}>
+              {["#ef4444","#eab308","#22c55e"].map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c, marginRight: 6 }} />)}
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "1px", marginLeft: 8 }}>Live Preview</span>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => setPreviewFullscreen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 18, fontWeight: 700, fontFamily: FONT_UI, display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 4, transition: "all 0.15s" }} onMouseOver={(e) => { e.currentTarget.style.color = "#334155"; e.currentTarget.style.background = "#f1f5f9"; }} onMouseOut={(e) => { e.currentTarget.style.color = "#94a3b8"; e.currentTarget.style.background = "none"; }}>✕</button>
+            </div>
+            <iframe srcDoc={code} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} title="fullscreen preview" sandbox="allow-scripts" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
