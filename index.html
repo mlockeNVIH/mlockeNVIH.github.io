@@ -271,7 +271,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 }
 
 /* ═══ GHOST EDITOR ═══ */
-function GhostEditor({ code, onChange, ghost, insertAfter, noGhost, stepDone, stepEntryCode, onAutoComplete, onReset, hoverMode, fullSnippetPresent, errorLine }) {
+function GhostEditor({ code, onChange, ghost, tagsOnly, insertAfter, noGhost, stepDone, stepEntryCode, onAutoComplete, onReset, hoverMode, setHoverMode, fullSnippetPresent, errorLine }) {
   const textareaRef = useRef(null);
   const preRef = useRef(null);
   const [confirm, setConfirm] = useState(null);
@@ -279,7 +279,7 @@ function GhostEditor({ code, onChange, ghost, insertAfter, noGhost, stepDone, st
   const handleScroll = useCallback(() => { if (preRef.current && textareaRef.current) { preRef.current.scrollTop = textareaRef.current.scrollTop; preRef.current.scrollLeft = textareaRef.current.scrollLeft; setScrollTop(textareaRef.current.scrollTop); } }, []);
   const handleKey = (e) => { if (e.key === "Tab") { e.preventDefault(); const t = e.target, st = t.selectionStart, en = t.selectionEnd; const nc = t.value.substring(0, st) + "  " + t.value.substring(en); onChange(nc); requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = st + 2; }); } };
   useEffect(() => { GhostEditor._textareaRef = textareaRef; });
-  const activeGhost = useMemo(() => { if (noGhost || !ghost || !insertAfter || fullSnippetPresent) return null; if (!hoverMode) return null; return ghost; }, [hoverMode, noGhost, ghost, insertAfter, fullSnippetPresent]);
+  const activeGhost = useMemo(() => { if (noGhost || !ghost || !insertAfter || fullSnippetPresent) return null; if (!hoverMode) return null; if (hoverMode === "tags" && tagsOnly) return tagsOnly; if (hoverMode === "full") return ghost; if (hoverMode === "tags") return ghost; return null; }, [hoverMode, noGhost, ghost, tagsOnly, insertAfter, fullSnippetPresent]);
   const currentStepAdditions = useMemo(() => { if (!stepEntryCode && stepEntryCode !== "") return null; if (code === stepEntryCode) return null; let start = 0; while (start < stepEntryCode.length && start < code.length && code[start] === stepEntryCode[start]) start++; let eo = stepEntryCode.length - 1, en = code.length - 1; while (eo > start && en > start && code[en] === stepEntryCode[eo]) { eo--; en--; } if (en < start) return null; return { start, end: en + 1 }; }, [code, stepEntryCode]);
   const segments = useMemo(() => {
     const parts = []; let base;
@@ -298,7 +298,7 @@ function GhostEditor({ code, onChange, ghost, insertAfter, noGhost, stepDone, st
       </pre>
       <textarea ref={textareaRef} value={code} onChange={(e) => onChange(e.target.value)} onKeyDown={handleKey} onScroll={handleScroll} spellCheck={false} autoCapitalize="off" autoCorrect="off" placeholder="Start typing..." style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: `${ED_PAD}px ${ED_LEFT}px`, fontFamily: FONT_MONO, fontSize: ED_SIZE, lineHeight: ED_LH, background: "transparent", color: "#e2e8f0", border: "none", outline: "none", resize: "none", whiteSpace: "pre-wrap", wordWrap: "break-word", overflow: "auto", tabSize: 2, boxSizing: "border-box", caretColor: "#22c55e" }} />
       <div style={{ position: "absolute", bottom: 12, right: 16, zIndex: 10, display: "flex", gap: 6 }}>
-        {ghost && !fullSnippetPresent && <button onClick={handleAC} style={{ background: "rgba(17,81,57,0.85)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 14px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", cursor: "pointer", fontFamily: FONT_UI, boxShadow: "0 2px 8px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(17,81,57,1)"} onMouseOut={(e) => e.currentTarget.style.background = "rgba(17,81,57,0.85)"}>Auto-Complete</button>}
+        {ghost && !fullSnippetPresent && <button onClick={handleAC} onMouseEnter={() => setHoverMode("full")} onMouseLeave={() => setHoverMode(null)} style={{ background: "rgba(17,81,57,0.85)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 14px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", cursor: "pointer", fontFamily: FONT_UI, boxShadow: "0 2px 8px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(17,81,57,1)"} onMouseOut={(e) => e.currentTarget.style.background = "rgba(17,81,57,0.85)"}>Auto-Complete</button>}
         {codeChanged && <button onClick={onReset} style={{ background: "rgba(185,28,28,0.8)", color: "white", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "6px 14px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", cursor: "pointer", fontFamily: FONT_UI, boxShadow: "0 2px 8px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(185,28,28,1)"} onMouseOut={(e) => e.currentTarget.style.background = "rgba(185,28,28,0.8)"}>Reset Step</button>}
       </div>
       {confirm && <ConfirmDialog message="Overwrite your changes with template?" onConfirm={confirm.callback} onCancel={() => setConfirm(null)} />}
@@ -515,7 +515,7 @@ function Workshop({ name }) {
           </div>
           <ValidationBanner error={validationError} onDismiss={() => setValidationError(null)} />
           <Toolbar currentStep={step} onToolClick={handleToolClick} setHoverMode={setHoverMode} />
-          <GhostEditor code={code} onChange={setCode} ghost={effectiveSnippet} insertAfter={effectiveInsertAfter} noGhost={s.noGhost} stepDone={isStepDone(step)} stepEntryCode={stepEntryCode} onAutoComplete={handleAutoComplete} onReset={handleReset} hoverMode={hoverMode} fullSnippetPresent={fullSnippetPresent(step)} errorLine={validationError?.line || null} />
+          <GhostEditor code={code} onChange={setCode} ghost={effectiveSnippet} tagsOnly={s.tagsOnly} insertAfter={effectiveInsertAfter} noGhost={s.noGhost} stepDone={isStepDone(step)} stepEntryCode={stepEntryCode} onAutoComplete={handleAutoComplete} onReset={handleReset} hoverMode={hoverMode} setHoverMode={setHoverMode} fullSnippetPresent={fullSnippetPresent(step)} errorLine={validationError?.line || null} />
         </div>
         <div style={{ width: "50%", display: "flex", flexDirection: "column", background: "#fff", overflow: "hidden" }}>
           <div style={{ height: 34, minHeight: 34, display: "flex", alignItems: "center", padding: "0 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", flexShrink: 0 }}>
