@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NVIH Web Workshop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" data-type="module">
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+
+const G = "#115139";
+const FONT_MONO = "'Cascadia Code','Fira Code','Consolas','Monaco',monospace";
+const FONT_UI = "'Open Sans',sans-serif";
+const ED_SIZE = 13;
+const ED_LH = 1.6;
+const ED_PAD = 14;
+const ED_LEFT = 18;
+
+const GUIDE_COLORS = [
+  "rgba(99,102,241,0.3)","rgba(234,179,8,0.3)","rgba(16,185,129,0.3)",
+  "rgba(239,68,68,0.3)","rgba(168,85,247,0.3)","rgba(59,130,246,0.3)",
+];
+
+const STOCK_PHOTOS = [
+  { id: "mountain", label: "Mountains", url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=300&fit=crop", thumb: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=120&h=80&fit=crop" },
+  { id: "forest", label: "Forest", url: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&h=300&fit=crop", thumb: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=120&h=80&fit=crop" },
+  { id: "river", label: "River", url: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600&h=300&fit=crop", thumb: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=120&h=80&fit=crop" },
+  { id: "sunset", label: "Sunset", url: "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=600&h=300&fit=crop", thumb: "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=120&h=80&fit=crop" },
+  { id: "wildflowers", label: "Wildflowers", url: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=600&h=300&fit=crop", thumb: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=120&h=80&fit=crop" },
+  { id: "lake", label: "Lake", url: "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=600&h=300&fit=crop", thumb: "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=120&h=80&fit=crop" },
+];
+
+/* ═══ ICONS ═══ */
+const svgIcon = (d, size = 18) => <svg xmlns="http://www.w3.org/2000/svg" height={size} viewBox="0 -960 960 960" width={size} fill="currentColor"><path d={d} /></svg>;
+const ICONS = {
+  paragraph: svgIcon("M360-160v-240q-83 0-141.5-58.5T160-600q0-83 58.5-141.5T360-800h360v80H600v560h-80v-560H440v560h-80Z"),
+  image: svgIcon("M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"),
+  ul: svgIcon("M360-200v-80h480v80H360Zm0-240v-80h480v80H360Zm0-240v-80h480v80H360ZM200-160q-33 0-56.5-23.5T120-240q0-33 23.5-56.5T200-320q33 0 56.5 23.5T280-240q0 33-23.5 56.5T200-160Zm0-240q-33 0-56.5-23.5T120-480q0-33 23.5-56.5T200-560q33 0 56.5 23.5T280-480q0 33-23.5 56.5T200-400Zm0-240q-33 0-56.5-23.5T120-720q0-33 23.5-56.5T200-800q33 0 56.5 23.5T280-720q0 33-23.5 56.5T200-640Z"),
+  link: svgIcon("M440-280H280q-83 0-141.5-58.5T80-480q0-83 58.5-141.5T280-680h160v80H280q-50 0-85 35t-35 85q0 50 35 85t85 35h160v80ZM320-440v-80h320v80H320Zm200 160v-80h160q50 0 85-35t35-85q0-50-35-85t-85-35H520v-80h160q83 0 141.5 58.5T880-480q0 83-58.5 141.5T680-280H520Z"),
+  style: svgIcon("M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-84 32-157t87.5-127Q255-819 329-850.5T480-882q150 0 255 105t105 255v56q0 58-41 99t-99 41q-33 0-62.5-16.5T591-390q-26 36-65.5 53T440-320q-75 0-127.5-52.5T260-500q0-75 52.5-127.5T440-680q75 0 127.5 52.5T620-500v78q0 25 17.5 43.5T680-360q25 0 42.5-18.5T740-422v-56q0-117-81.5-198.5T460-758q-117 0-198.5 81.5T180-478q0 117 81.5 198.5T460-198h220v80H480Zm-40-280q42 0 71-29t29-71q0-42-29-71t-71-29q-42 0-71 29t-29 71q0 42 29 71t71 29Z"),
+};
+const headingLabel = <span style={{ fontWeight: 800, fontSize: 13, fontFamily: FONT_UI, lineHeight: 1 }}>H<sub style={{ fontSize: "0.65em", verticalAlign: "baseline", position: "relative", top: "0.2em" }}>1</sub></span>;
+
+/* ═══ TOOLBAR CONFIG (trimmed) ═══ */
+const TOOLBAR_GROUPS = [
+  { label: "Headings", unlocksAt: 1, items: [{ key: "h1", label: "Heading", render: headingLabel, stepLinked: 1 }] },
+  { label: "Text", unlocksAt: 2, items: [{ key: "p", label: "Paragraph", render: ICONS.paragraph, stepLinked: 2 }] },
+  { label: "Media", unlocksAt: 3, items: [{ key: "img", label: "Image", render: ICONS.image, stepLinked: 3 }] },
+  { label: "Lists", unlocksAt: 4, items: [{ key: "ul", label: "Bulleted List", render: ICONS.ul, stepLinked: 4 }] },
+  { label: "Links", unlocksAt: 5, items: [{ key: "a", label: "Link", render: ICONS.link, stepLinked: 5 }] },
+  { label: "Style", unlocksAt: 6, items: [{ key: "style", label: "CSS Style", render: ICONS.style, stepLinked: 6 }] },
+];
+const ALL_TOOLBAR_ITEMS = TOOLBAR_GROUPS.flatMap(g => g.items.map(it => ({ ...it, unlocksAt: g.unlocksAt })));
+
+/* ═══ HELPERS ═══ */
+const _body = (c) => { const m = c.match(/<body[^>]*>([\s\S]*)<\/body>/i); return m ? m[1] : ""; };
+const _head = (c) => { const m = c.match(/<head[^>]*>([\s\S]*)<\/head>/i); return m ? m[1] : ""; };
+
+/* ═══ STEP DEFINITIONS ═══ */
+const buildSteps = (name) => [
+  {
+    title: "The Skeleton", goal: "Understand the basic structure of a webpage.",
+    substeps: [], tips: ["Pre-filled — read through it, then hit Next."],
+    prefill: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>${name}'s Website</title>\n</head>\n<body>\n\n</body>\n</html>`,
+    snippet: null, tagsOnly: null, insertAfter: null,
+  },
+  {
+    title: "Add a Heading", goal: "Add an <h1> heading inside <body>.",
+    substeps: [
+      { text: "Insert <h1></h1> tags.", check: (c) => /<h1[^>]*>/i.test(_body(c)) },
+      { text: "Type heading text between tags.", check: (c) => /<h1[^>]*>[^<]+<\/h1>/i.test(_body(c)) },
+    ], tips: [],
+    snippet: `  <h1>Welcome to ${name}'s Page</h1>`, tagsOnly: `  <h1></h1>`, insertAfter: "<body>",
+  },
+  {
+    title: "Add a Paragraph", goal: "Add a <p> paragraph below your heading.",
+    substeps: [
+      { text: "Insert <p></p> tags.", check: (c) => /<p[^>]*>/i.test(_body(c)) },
+      { text: "Write some text inside.", check: (c) => /<p[^>]*>[^<]+<\/p>/i.test(_body(c)) },
+    ], tips: [],
+    snippet: `  <p>Hi! I'm ${name} and this is the first website I've ever built.</p>`, tagsOnly: `  <p></p>`, insertAfter: "</h1>",
+  },
+  {
+    title: "Add an Image", goal: "Pick a photo and insert it.",
+    substeps: [
+      { text: "Choose a photo below.", check: (c, p) => !!p },
+      { text: "Photo inserted.", check: (c) => /<img[^>]+src=/i.test(_body(c)) },
+    ], tips: [],
+    snippet: null, tagsOnly: null, insertAfter: "</p>", isPhotoPicker: true,
+  },
+  {
+    title: "Add a List", goal: "Add a subheading and bulleted list.",
+    substeps: [
+      { text: "Add <h2> subheading with text.", check: (c) => /<h2[^>]*>[^<]+<\/h2>/i.test(_body(c)) },
+      { text: "Add <ul> with filled <li> items.", check: (c) => /<ul[^>]*>[\s\S]*<li[^>]*>[^<]+<\/li>/i.test(_body(c)) },
+    ], tips: [],
+    snippet: `  <h2>Things I Enjoy</h2>\n  <ul>\n    <li>Learning new skills</li>\n    <li>Helping people</li>\n    <li>Building websites!</li>\n  </ul>`,
+    tagsOnly: `  <h2></h2>\n  <ul>\n    <li></li>\n    <li></li>\n    <li></li>\n  </ul>`, insertAfter: null,
+  },
+  {
+    title: "Add a Link", goal: "Add a clickable link.",
+    substeps: [
+      { text: "Insert <a> with href URL.", check: (c) => /href=["'][^"']+["']/i.test(_body(c)) },
+      { text: "Add visible link text.", check: (c) => /<a[^>]*>[^<]+<\/a>/i.test(_body(c)) },
+    ], tips: [],
+    snippet: `  <p>Learn more at <a href="https://www.w3schools.com" target="_blank">W3Schools.com</a></p>\n  <p>Make additional changes to your code in an online HTML viewer <a href="https://www.w3schools.com/tryit/" target="_blank">like this one</a>.</p>`,
+    tagsOnly: `  <p><a href="" target="_blank"></a></p>`, insertAfter: "</ul>",
+  },
+  {
+    title: "Style One Element", goal: "Add CSS to style your heading.",
+    substeps: [
+      { text: "Add <style> block in <head>.", check: (c) => /<style[^>]*>/i.test(_head(c)) },
+      { text: "Add h1 CSS rule.", check: (c) => /h1\s*\{[^}]+\}/i.test(_head(c)) },
+    ], tips: ["#115139 = green, #cc0000 = red, #2563eb = blue."],
+    snippet: `  <style>\n    h1 {\n      color: #115139;\n      border-bottom: 3px solid #115139;\n      padding-bottom: 10px;\n    }\n  </style>`, tagsOnly: null, insertAfter: "</title>",
+  },
+  {
+    title: "Style Everything", goal: "Apply styles to the full page.",
+    substeps: [
+      { text: "Hit Auto-Complete to add CSS.", check: (c) => /body\s*\{/i.test(c) },
+      { text: "Tweak values if you want.", check: () => true },
+    ], tips: [],
+    snippet: `    body {\n      font-family: 'Segoe UI', Arial, sans-serif;\n      max-width: 700px;\n      margin: 40px auto;\n      padding: 0 20px;\n      background: #f0f4f3;\n      color: #1a2e28;\n    }\n    h2 { color: #0d3d1c; }\n    img {\n      border-radius: 8px;\n      margin: 15px 0;\n      max-width: 100%;\n    }\n    a { color: #115139; font-weight: 600; }\n    ul { line-height: 1.8; }`,
+    tagsOnly: null, insertAfter: "padding-bottom: 10px;\n    }", noGhost: true,
+  },
+  {
+    title: "Make It Yours", goal: "Personalize and save your page.",
+    substeps: [], tips: ["Toolbar fully unlocked.", "Hit Save when ready."],
+    snippet: null, tagsOnly: null, insertAfter: null,
+  },
+];
+
+/* ═══ VALIDATION ═══ */
+function validateStep(si, code, pickedPhoto) {
+  const syn = checkSyntax(code);
+  if (syn) return syn;
+  const bc = _body(code), hc = _head(code), lines = code.split("\n");
+  const findLine = (re) => { for (let i = 0; i < lines.length; i++) if (re.test(lines[i])) return i + 1; return null; };
+  const bodyTags = ["h1","h2","h3","h4","h5","h6","p","ul","ol","li","img","a"];
+  for (const t of bodyTags) { const r = new RegExp(`<${t}[\\s>]`,"i"); if (r.test(hc)) return { message: `<${t}> is inside <head> — move it to <body>.`, line: findLine(r) }; }
+  if (/<style[\s>]/i.test(bc)) return { message: "<style> belongs in <head>, not <body>.", line: findLine(/<style[\s>]/i) };
+  const ic = checkIndentation(code, si); if (ic) return ic;
+  switch (si) {
+    case 0: return null;
+    case 1: { if (!/<h1[\s>]/i.test(bc)) return { message: "Missing <h1> inside <body>.", line: null }; if (!/<\/h1>/i.test(bc)) return { message: "Missing closing </h1>.", line: findLine(/<h1[\s>]/i) }; if (!/<h1[^>]*>[^<]+<\/h1>/i.test(bc)) return { message: "<h1> is empty.", line: findLine(/<h1[\s>]/i) }; return null; }
+    case 2: { if (!/<p[\s>]/i.test(bc)) return { message: "Missing <p> in <body>.", line: null }; if (!/<\/p>/i.test(bc)) return { message: "Missing closing </p>.", line: findLine(/<p[\s>]/i) }; if (!/<p[^>]*>[^<]+<\/p>/i.test(bc)) return { message: "<p> is empty.", line: findLine(/<p[\s>]/i) }; return null; }
+    case 3: { if (!pickedPhoto) return { message: "Pick a photo first.", line: null }; if (!/<img[\s>]/i.test(bc)) return { message: "Missing <img>.", line: null }; return null; }
+    case 4: { if (!/<h2[\s>]/i.test(bc)) return { message: "Missing <h2>.", line: null }; if (!/<h2[^>]*>[^<]+<\/h2>/i.test(bc)) return { message: "<h2> is empty.", line: findLine(/<h2[\s>]/i) }; if (!/<ul[\s>]/i.test(bc)&&!/<ol[\s>]/i.test(bc)) return { message: "Missing list.", line: null }; if (!/<li[^>]*>[^<]+<\/li>/i.test(bc)) return { message: "<li> items empty.", line: findLine(/<li[\s>]/i) }; return null; }
+    case 5: { if (!/<a\s/i.test(bc)) return { message: "Missing <a> tag.", line: null }; if (!/href=["'][^"']+["']/i.test(bc)) return { message: "<a> needs href.", line: findLine(/<a\s/i) }; if (!/<a[^>]*>[^<]+<\/a>/i.test(bc)) return { message: "Link needs text.", line: findLine(/<a\s/i) }; return null; }
+    case 6: { if (!/<style[\s>]/i.test(hc)) return { message: "Missing <style> in <head>.", line: null }; if (!/h1\s*\{/i.test(hc)) return { message: "Add h1 CSS rule.", line: findLine(/<style[\s>]/i) }; return null; }
+    case 7: { if (!/body\s*\{/i.test(code)) return { message: "Missing body CSS. Hit Auto-Complete.", line: null }; return null; }
+    default: return null;
+  }
+}
+function checkIndentation(code, si) {
+  const lines = code.split("\n");
+  const depthTags = { "html":0,"/html":0,"head":0,"/head":0,"body":0,"/body":0,"meta":2,"title":2,"/title":2,"style":2,"/style":2,"h1":2,"/h1":2,"h2":2,"/h2":2,"p":2,"/p":2,"img":2,"a":2,"/a":2,"ul":2,"/ul":2,"ol":2,"/ol":2,"li":4,"/li":4 };
+  const stepTags = { 1:["h1"], 2:["p"], 3:["img"], 4:["h2","ul","li"], 5:["p","a"], 6:["style"], 7:[], 8:[] };
+  const rel = stepTags[si] || []; if (!rel.length) return null;
+  for (let i = 0; i < lines.length; i++) {
+    const tr = lines[i].trimStart(); if (!tr || !tr.startsWith("<")) continue;
+    const tm = tr.match(/^<\/?([a-z0-9]+)/i); if (!tm) continue;
+    const tn = tm[1].toLowerCase(); if (!rel.includes(tn)) continue;
+    const key = tr.startsWith("</") ? `/${tn}` : tn; const exp = depthTags[key]; if (exp === undefined) continue;
+    const act = lines[i].length - lines[i].trimStart().length;
+    if (act !== exp) { const tabs = exp / 2; return { message: `Line ${i+1}: <${tn}> needs ${tabs} tab${tabs!==1?"s":""} (${exp} spaces) indent.`, line: i+1 }; }
+  }
+  return null;
+}
+function checkSyntax(code) {
+  const lines = code.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    let inTag = false;
+    for (let j = 0; j < lines[i].length; j++) {
+      if (lines[i][j] === "<") { if (inTag) return { message: `Line ${i+1}: Unclosed '<' — missing '>'.`, line: i+1 }; inTag = true; }
+      else if (lines[i][j] === ">") { if (!inTag) return { message: `Line ${i+1}: Unexpected '>'.`, line: i+1 }; inTag = false; }
+    }
+    if (inTag) return { message: `Line ${i+1}: Unclosed tag — missing '>'.`, line: i+1 };
+  }
+  if (/<html/i.test(code) && !/<\/html>/i.test(code)) return { message: "Missing </html>.", line: null };
+  if (/<head/i.test(code) && !/<\/head>/i.test(code)) return { message: "Missing </head>.", line: null };
+  if (/<body/i.test(code) && !/<\/body>/i.test(code)) return { message: "Missing </body>.", line: null };
+  return null;
+}
+
+/* ═══ INDENT GUIDES (full-length lines) ═══ */
+function IndentGuides({ code, scrollTop }) {
+  const lines = useMemo(() => code.split("\n"), [code]);
+  const charW = ED_SIZE * 0.6;
+  const lineH = ED_SIZE * ED_LH;
+  // For each indent depth, find the range of lines that have at least that depth
+  const maxDepth = 6;
+  const guides = useMemo(() => {
+    const result = [];
+    for (let d = 1; d <= maxDepth; d++) {
+      let start = null;
+      for (let i = 0; i <= lines.length; i++) {
+        const line = i < lines.length ? lines[i] : "";
+        let spaces = 0;
+        for (let j = 0; j < line.length && line[j] === " "; j++) spaces++;
+        const depth = Math.floor(spaces / 2);
+        const hasContent = line.trim().length > 0;
+        if (hasContent && depth >= d) {
+          if (start === null) start = i;
+        } else {
+          if (start !== null) {
+            result.push({ depth: d, startLine: start, endLine: i - 1 });
+            start = null;
+          }
+        }
+      }
+    }
+    return result;
+  }, [lines]);
+
+  return (
+    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none", overflow: "hidden" }}>
+      <div style={{ position: "relative", top: -scrollTop, paddingTop: ED_PAD }}>
+        {guides.map((g, i) => (
+          <div key={i} style={{
+            position: "absolute",
+            left: ED_LEFT + (g.depth - 1) * 2 * charW + charW * 0.3,
+            top: g.startLine * lineH,
+            width: 1,
+            height: (g.endLine - g.startLine + 1) * lineH,
+            background: GUIDE_COLORS[(g.depth - 1) % GUIDE_COLORS.length],
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ═══ VALIDATION BANNER ═══ */
+function ValidationBanner({ error, onDismiss }) {
+  if (!error) return null;
+  const msg = typeof error === "string" ? error : error.message;
+  return (
+    <div style={{ padding: "10px 14px", background: "#991b1b", borderBottom: "2px solid #7f1d1d", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+      <span style={{ fontSize: 16 }}>🚫</span>
+      <span style={{ flex: 1, fontSize: 12, color: "#fff", lineHeight: 1.4, fontFamily: FONT_UI, fontWeight: 600 }}>{msg}</span>
+      <button onClick={onDismiss} style={{ background: "rgba(255,255,255,0.2)", color: "white", border: "none", borderRadius: 4, padding: "5px 8px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT_UI }}>✕</button>
+    </div>
+  );
+}
+
+/* ═══ CONFIRM DIALOG ═══ */
+function ConfirmDialog({ message, onConfirm, onCancel }) {
+  return (
+    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "white", borderRadius: 12, padding: "20px 24px", maxWidth: 320, boxShadow: "0 12px 24px rgba(0,0,0,0.3)", fontFamily: FONT_UI, textAlign: "center" }}>
+        <p style={{ margin: "0 0 16px 0", fontSize: 13, lineHeight: 1.5, color: "#334155" }}>{message}</p>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+          <button onClick={onCancel} style={{ padding: "7px 18px", borderRadius: 6, border: "1px solid #cbd5e1", background: "white", color: "#475569", fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", cursor: "pointer", fontFamily: FONT_UI }}>Cancel</button>
+          <button onClick={onConfirm} style={{ padding: "7px 18px", borderRadius: 6, border: "none", background: G, color: "white", fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", cursor: "pointer", fontFamily: FONT_UI }}>Overwrite</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ GHOST EDITOR ═══ */
+function GhostEditor({ code, onChange, ghost, insertAfter, noGhost, stepDone, stepEntryCode, onAutoComplete, onReset, hoverMode, fullSnippetPresent, errorLine }) {
+  const textareaRef = useRef(null);
+  const preRef = useRef(null);
+  const [confirm, setConfirm] = useState(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const handleScroll = useCallback(() => { if (preRef.current && textareaRef.current) { preRef.current.scrollTop = textareaRef.current.scrollTop; preRef.current.scrollLeft = textareaRef.current.scrollLeft; setScrollTop(textareaRef.current.scrollTop); } }, []);
+  const handleKey = (e) => { if (e.key === "Tab") { e.preventDefault(); const t = e.target, st = t.selectionStart, en = t.selectionEnd; const nc = t.value.substring(0, st) + "  " + t.value.substring(en); onChange(nc); requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = st + 2; }); } };
+  useEffect(() => { GhostEditor._textareaRef = textareaRef; });
+  const activeGhost = useMemo(() => { if (noGhost || !ghost || !insertAfter || fullSnippetPresent) return null; if (!hoverMode) return null; return ghost; }, [hoverMode, noGhost, ghost, insertAfter, fullSnippetPresent]);
+  const currentStepAdditions = useMemo(() => { if (!stepEntryCode && stepEntryCode !== "") return null; if (code === stepEntryCode) return null; let start = 0; while (start < stepEntryCode.length && start < code.length && code[start] === stepEntryCode[start]) start++; let eo = stepEntryCode.length - 1, en = code.length - 1; while (eo > start && en > start && code[en] === stepEntryCode[eo]) { eo--; en--; } if (en < start) return null; return { start, end: en + 1 }; }, [code, stepEntryCode]);
+  const segments = useMemo(() => {
+    const parts = []; let base;
+    if (activeGhost) { const idx = code.lastIndexOf(insertAfter); if (idx === -1) { base = [{ start: 0, end: code.length, type: "real" }, { text: "\n" + activeGhost, type: "ghost" }]; } else { const ae = idx + insertAfter.length, nl = code.indexOf("\n", ae), sp = nl === -1 ? ae : nl; base = [{ start: 0, end: sp, type: "real" }, { text: "\n" + activeGhost, type: "ghost" }, { start: sp, end: code.length, type: "real" }]; } } else { base = [{ start: 0, end: code.length, type: "real" }]; }
+    for (const seg of base) { if (seg.type === "ghost") { parts.push({ text: seg.text, color: "rgba(120,200,160,0.45)", italic: true }); continue; } const st = code.substring(seg.start, seg.end); if (!currentStepAdditions || currentStepAdditions.end <= seg.start || currentStepAdditions.start >= seg.end) { parts.push({ text: st, color: "transparent" }); } else { const hs = Math.max(currentStepAdditions.start, seg.start) - seg.start, he = Math.min(currentStepAdditions.end, seg.end) - seg.start; if (hs > 0) parts.push({ text: st.substring(0, hs), color: "transparent" }); parts.push({ text: st.substring(hs, he), color: "rgba(250,204,21,0.5)" }); if (he < st.length) parts.push({ text: st.substring(he), color: "transparent" }); } }
+    return parts;
+  }, [code, activeGhost, insertAfter, currentStepAdditions]);
+  const codeChanged = code !== stepEntryCode;
+  const handleAC = () => { if (!ghost) return; if (codeChanged && !fullSnippetPresent) { setConfirm({ callback: () => { onAutoComplete(true); setConfirm(null); } }); } else { onAutoComplete(false); } };
+  return (
+    <div style={{ flex: 1, position: "relative", overflow: "hidden", background: "#1e293b" }}>
+      <IndentGuides code={code} scrollTop={scrollTop} />
+      {errorLine && (() => { const lh = ED_SIZE * ED_LH; const t = ED_PAD + (errorLine - 1) * lh - scrollTop; return <div style={{ position: "absolute", left: 0, right: 0, top: t, height: lh, background: "rgba(239,68,68,0.15)", borderLeft: "3px solid #ef4444", pointerEvents: "none", zIndex: 1 }} />; })()}
+      <pre ref={preRef} aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: `${ED_PAD}px ${ED_LEFT}px`, fontFamily: FONT_MONO, fontSize: ED_SIZE, lineHeight: ED_LH, background: "transparent", whiteSpace: "pre-wrap", wordWrap: "break-word", overflow: "hidden", tabSize: 2, boxSizing: "border-box", pointerEvents: "none" }}>
+        {segments.map((s, i) => <span key={i} style={{ color: s.color, fontStyle: s.italic ? "italic" : "normal", ...(s.color.includes("250,204,21") ? { background: "rgba(250,204,21,0.12)", borderRadius: 2 } : {}) }}>{s.text}</span>)}
+      </pre>
+      <textarea ref={textareaRef} value={code} onChange={(e) => onChange(e.target.value)} onKeyDown={handleKey} onScroll={handleScroll} spellCheck={false} autoCapitalize="off" autoCorrect="off" placeholder="Start typing..." style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: `${ED_PAD}px ${ED_LEFT}px`, fontFamily: FONT_MONO, fontSize: ED_SIZE, lineHeight: ED_LH, background: "transparent", color: "#e2e8f0", border: "none", outline: "none", resize: "none", whiteSpace: "pre-wrap", wordWrap: "break-word", overflow: "auto", tabSize: 2, boxSizing: "border-box", caretColor: "#22c55e" }} />
+      <div style={{ position: "absolute", bottom: 12, right: 16, zIndex: 10, display: "flex", gap: 6 }}>
+        {ghost && !fullSnippetPresent && <button onClick={handleAC} style={{ background: "rgba(17,81,57,0.85)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 14px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", cursor: "pointer", fontFamily: FONT_UI, boxShadow: "0 2px 8px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(17,81,57,1)"} onMouseOut={(e) => e.currentTarget.style.background = "rgba(17,81,57,0.85)"}>Auto-Complete</button>}
+        {codeChanged && <button onClick={onReset} style={{ background: "rgba(185,28,28,0.8)", color: "white", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "6px 14px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", cursor: "pointer", fontFamily: FONT_UI, boxShadow: "0 2px 8px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(185,28,28,1)"} onMouseOut={(e) => e.currentTarget.style.background = "rgba(185,28,28,0.8)"}>Reset Step</button>}
+      </div>
+      {confirm && <ConfirmDialog message="Overwrite your changes with template?" onConfirm={confirm.callback} onCancel={() => setConfirm(null)} />}
+    </div>
+  );
+}
+
+/* ═══ INLINE PHOTO PICKER ═══ */
+function InlinePhotoPicker({ onPick, picked }) {
+  const [hovered, setHovered] = useState(null);
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 8 }}>
+      {STOCK_PHOTOS.map(p => (
+        <div key={p.id} onClick={() => onPick(p)} onMouseEnter={() => setHovered(p.id)} onMouseLeave={() => setHovered(null)}
+          style={{ position: "relative", borderRadius: 6, overflow: "hidden", cursor: "pointer", aspectRatio: "3/2", border: picked?.id === p.id ? `2px solid ${G}` : "2px solid transparent", boxShadow: hovered === p.id ? "0 2px 8px rgba(0,0,0,0.2)" : "none", transition: "all 0.15s", transform: hovered === p.id ? "scale(1.03)" : "scale(1)" }}>
+          <img src={p.thumb} alt={p.label} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "2px 0", background: "rgba(0,0,0,0.5)", fontSize: 9, fontWeight: 600, color: "white", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center" }}>{p.label}</div>
+          {picked?.id === p.id && <div style={{ position: "absolute", top: 4, right: 4, width: 18, height: 18, borderRadius: "50%", background: G, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "white", fontSize: 11, fontWeight: 700 }}>✓</span></div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ═══ SCREENS ═══ */
+function EntryScreen({ onStart }) {
+  const [name, setName] = useState("");
+  const inputRef = useRef(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+  const submit = () => { const t = name.trim(); if (t) onStart(t); };
+  return (
+    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #0d3d1c 0%, #115139 40%, #1a6b50 100%)", fontFamily: FONT_UI }}>
+      <div style={{ background: "white", borderRadius: 16, padding: "40px 48px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: 440, width: "90%" }}>
+        <h1 style={{ margin: "0 0 6px 0", fontSize: 22, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "2px" }}>Web Workshop</h1>
+        <p style={{ margin: "0 0 28px 0", fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>Build your first website in 10 minutes.<br />Enter your name to begin.</p>
+        <input ref={inputRef} type="text" placeholder="Your first name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} maxLength={30} style={{ width: "100%", padding: "12px 16px", fontSize: 15, border: "2px solid #e2e8f0", borderRadius: 8, fontFamily: FONT_UI, outline: "none", boxSizing: "border-box", textAlign: "center" }} onFocus={(e) => (e.target.style.borderColor = G)} onBlur={(e) => (e.target.style.borderColor = "#e2e8f0")} />
+        <button onClick={submit} style={{ marginTop: 16, padding: "12px 40px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", cursor: "pointer", fontFamily: FONT_UI, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, color: "white", boxShadow: "0 4px 12px rgba(17,81,57,0.3)", width: "100%", opacity: name.trim() ? 1 : 0.5, pointerEvents: name.trim() ? "auto" : "none" }}>Let's Build</button>
+      </div>
+      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 24, letterSpacing: "0.5px" }}>NVIH — Train the Trainer Workshop</p>
+    </div>
+  );
+}
+
+function ConceptsScreen({ name, onContinue }) {
+  const concepts = [
+    { title: "Code = Instructions", desc: "Browser reads your file, displays the page." },
+    { title: "Tags Come in Pairs", desc: "<h1>content</h1> — open, content, close." },
+    { title: "Tags Nest Like Containers", desc: "Tags inside tags create hierarchy." },
+    { title: "Indentation = Organization", desc: "Keeps code readable. Doesn't affect the page." },
+    { title: "Three Types of Web Code", desc: "HTML = structure. CSS = style. JS = interactivity." },
+  ];
+  return (
+    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #0d3d1c 0%, #115139 40%, #1a6b50 100%)", fontFamily: FONT_UI, overflow: "auto", padding: "20px 0" }}>
+      <div style={{ background: "white", borderRadius: 16, padding: "32px 36px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", maxWidth: 540, width: "90%" }}>
+        <h1 style={{ margin: "0 0 4px 0", fontSize: 18, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", textAlign: "center" }}>Before We Build</h1>
+        <p style={{ margin: "0 0 20px 0", fontSize: 12, color: "#64748b", textAlign: "center" }}>Quick review, {name}.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {concepts.map((c, i) => (
+            <div key={i}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ flexShrink: 0, width: 8, height: 8, borderRadius: "50%", background: G, marginTop: 5 }} />
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{c.title}</span>
+                  <span style={{ fontSize: 12, color: "#64748b", marginLeft: 6 }}>— {c.desc}</span>
+                </div>
+              </div>
+              {/* Visual examples */}
+              {i === 0 && <pre style={{ margin: "6px 0 0 18px", fontSize: 11, background: "#f1f5f9", padding: "6px 10px", borderRadius: 4, color: "#334155", fontFamily: FONT_MONO, lineHeight: 1.4 }}>{"<p>Hello World</p>  →  Browser shows: Hello World"}</pre>}
+              {i === 1 && <pre style={{ margin: "6px 0 0 18px", fontSize: 11, background: "#f1f5f9", padding: "6px 10px", borderRadius: 4, color: "#334155", fontFamily: FONT_MONO, lineHeight: 1.4 }}>{"<h1>My Title</h1>\n<p>My paragraph.</p>"}</pre>}
+              {i === 2 && <pre style={{ margin: "6px 0 0 18px", fontSize: 11, background: "#f1f5f9", padding: "6px 10px", borderRadius: 4, color: "#334155", fontFamily: FONT_MONO, lineHeight: 1.4 }}>{"<body>\n  <ul>\n    <li>Item</li>\n  </ul>\n</body>"}</pre>}
+              {i === 3 && <div style={{ margin: "6px 0 0 18px", display: "flex", gap: 12 }}><pre style={{ fontSize: 11, background: "#fef2f2", padding: "6px 10px", borderRadius: 4, color: "#991b1b", fontFamily: FONT_MONO, lineHeight: 1.4, flex: 1 }}>{"<ul>\n<li>Hard to read</li>\n</ul>"}</pre><pre style={{ fontSize: 11, background: "#f0fdf4", padding: "6px 10px", borderRadius: 4, color: "#166534", fontFamily: FONT_MONO, lineHeight: 1.4, flex: 1 }}>{"<ul>\n  <li>Easy!</li>\n</ul>"}</pre></div>}
+              {i === 4 && <pre style={{ margin: "6px 0 0 18px", fontSize: 11, background: "#f1f5f9", padding: "6px 10px", borderRadius: 4, color: "#334155", fontFamily: FONT_MONO, lineHeight: 1.4 }}>{"HTML: <h1>Title</h1>\nCSS:  h1 { color: green; }\nJS:   (not today!)"}</pre>}
+            </div>
+          ))}
+        </div>
+        <button onClick={onContinue} style={{ marginTop: 24, padding: "12px 40px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", cursor: "pointer", fontFamily: FONT_UI, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, color: "white", boxShadow: "0 4px 12px rgba(17,81,57,0.3)", width: "100%" }}>Next →</button>
+      </div>
+    </div>
+  );
+}
+
+function ControlsScreen({ onContinue }) {
+  const ways = [
+    { label: "Type it yourself", desc: "Read the instructions, type the code into the editor.", difficulty: "DIY", color: "#2563eb" },
+    { label: "Toolbar button", desc: "Click a toolbar button to insert tags at the right spot. You fill in the content.", difficulty: "Easier", color: "#d97706" },
+    { label: "Auto-Complete", desc: "Click Auto-Complete (bottom-right of editor) to fill in the entire step.", difficulty: "Easiest", color: "#16a34a" },
+  ];
+  return (
+    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #0d3d1c 0%, #115139 40%, #1a6b50 100%)", fontFamily: FONT_UI }}>
+      <div style={{ background: "white", borderRadius: 16, padding: "32px 36px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", maxWidth: 480, width: "90%" }}>
+        <h1 style={{ margin: "0 0 4px 0", fontSize: 18, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", textAlign: "center" }}>How It Works</h1>
+        <p style={{ margin: "0 0 20px 0", fontSize: 12, color: "#64748b", textAlign: "center" }}>Each step gives you instructions on the left and a live preview on the right.<br />Three ways to complete each step:</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {ways.map((w, i) => (
+            <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: "white", background: w.color, borderRadius: 4, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.5px", marginTop: 2 }}>{w.difficulty}</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{w.label}</div>
+                <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4 }}>{w.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 20, padding: "10px 14px", background: "#f8faf9", borderRadius: 8, border: `1px solid #e2e8f0` }}>
+          <div style={{ fontSize: 11.5, color: "#475569", lineHeight: 1.5 }}>
+            <strong style={{ color: G }}>Also available:</strong> Reset Step undoes your changes. Next validates your work before advancing.
+          </div>
+        </div>
+        <button onClick={onContinue} style={{ marginTop: 20, padding: "12px 40px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", cursor: "pointer", fontFamily: FONT_UI, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, color: "white", boxShadow: "0 4px 12px rgba(17,81,57,0.3)", width: "100%" }}>Start Building →</button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ TOOLBAR ═══ */
+function Toolbar({ currentStep, onToolClick, setHoverMode }) {
+  const isLast = currentStep >= 8;
+  return (
+    <div style={{ height: 38, minHeight: 38, display: "flex", alignItems: "center", padding: "0 8px", gap: 2, borderBottom: "1px solid #e2e8f0", background: "#f8faf9", flexShrink: 0 }}>
+      {TOOLBAR_GROUPS.map((group, gi) => {
+        const unlocked = currentStep >= group.unlocksAt || isLast;
+        return (
+          <div key={group.label} style={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {gi > 0 && <div style={{ width: 1, height: 20, background: "#e2e8f0", margin: "0 4px" }} />}
+            {group.items.map(item => {
+              const active = item.stepLinked !== undefined && currentStep === item.stepLinked;
+              const enabled = unlocked || isLast;
+              return (
+                <button key={item.key} onClick={() => enabled && onToolClick(item.key)}
+                  onMouseEnter={() => active && setHoverMode("tags")} onMouseLeave={() => setHoverMode(null)}
+                  title={enabled ? item.label : `Unlocks later`}
+                  style={{ minWidth: 30, height: 28, borderRadius: 4, padding: "0 4px", border: "none", cursor: enabled ? "pointer" : "default", background: active ? "rgba(17,81,57,0.1)" : "transparent", color: enabled ? (active ? G : "#475569") : "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s", position: "relative", outline: active ? `2px solid ${G}` : "none", outlineOffset: -1 }}
+                  onMouseOver={(e) => enabled && !active && (e.currentTarget.style.background = "#f1f5f9")}
+                  onMouseOut={(e) => !active && (e.currentTarget.style.background = "transparent")}>
+                  {item.render}
+                  {!unlocked && !isLast && <div style={{ position: "absolute", top: -1, right: -1, width: 5, height: 5, borderRadius: "50%", background: "#cbd5e1" }} />}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })}
+      <div style={{ flex: 1 }} />
+      <span style={{ fontSize: 9, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>Toolbar</span>
+    </div>
+  );
+}
+
+/* ═══ WORKSHOP ═══ */
+function Workshop({ name }) {
+  const steps = useMemo(() => buildSteps(name), [name]);
+  const [step, setStep] = useState(0);
+  const [code, setCode] = useState(steps[0].prefill || "");
+  const [saved, setSaved] = useState(false);
+  const [stepEntryCode, setStepEntryCode] = useState(steps[0].prefill || "");
+  const [hoverMode, setHoverMode] = useState(null);
+  const [pickedPhoto, setPickedPhoto] = useState(null);
+  const [validationError, setValidationError] = useState(null);
+  const s = steps[step], last = step === steps.length - 1;
+
+  const effectiveSnippet = useMemo(() => { if (step === 3 && pickedPhoto) return `  <img src="${pickedPhoto.url}" alt="${pickedPhoto.label}">`; return s.snippet; }, [step, pickedPhoto, s.snippet]);
+  const effectiveInsertAfter = useMemo(() => { if (step === 4 && pickedPhoto) return `alt="${pickedPhoto.label}">`; return s.insertAfter; }, [step, pickedPhoto, s.insertAfter]);
+
+  useEffect(() => { setStepEntryCode(code); setHoverMode(null); setValidationError(null); }, [step]);
+  useEffect(() => { if (validationError) setValidationError(null); }, [code]);
+
+  const tagsPresent = useCallback((si) => { const st = steps[si]; const snip = si === 3 && pickedPhoto ? `<img src="${pickedPhoto.url}"` : st.snippet; if (!snip) return true; if (st.tagsOnly) { const tl = st.tagsOnly.trim().split("\n")[0].trim(); if (tl.length > 3 && code.includes(tl)) return true; } const tm = snip.match(/<(\w+)[\s>]/); if (tm) { const af = si === 3 ? "</p>" : (si === 4 && pickedPhoto ? `alt="${pickedPhoto.label}">` : st.insertAfter); const ai = af ? code.indexOf(af) : -1; if (ai !== -1 && code.indexOf(`<${tm[1]}`, ai) !== -1) return true; } return false; }, [code, steps, pickedPhoto]);
+  const fullSnippetPresent = useCallback((si) => { const snip = si === 3 && pickedPhoto ? `<img src="${pickedPhoto.url}"` : steps[si].snippet; if (!snip) return true; const fl = snip.trim().split("\n")[0].trim(); return fl.length > 3 && code.includes(fl); }, [code, steps, pickedPhoto]);
+  const isStepDone = useCallback((si) => tagsPresent(si), [tagsPresent]);
+
+  const doInsert = useCallback((snip, after, src) => { const idx = src.lastIndexOf(after); if (idx === -1) { const bc = src.lastIndexOf("</body>"); if (bc !== -1) return src.substring(0, bc) + snip + "\n" + src.substring(bc); return src + "\n" + snip; } const ae = idx + after.length, nl = src.indexOf("\n", ae), sp = nl === -1 ? ae : nl; return src.substring(0, sp) + "\n" + snip + src.substring(sp); }, []);
+
+  const handlePhotoPick = useCallback((photo) => { setPickedPhoto(photo); const nc = doInsert(`  <img src="${photo.url}" alt="${photo.label}">`, "</p>", code); setCode(nc); }, [code, doInsert]);
+
+  const handleToolClick = useCallback((key) => {
+    const item = ALL_TOOLBAR_ITEMS.find(t => t.key === key); if (!item) return;
+    if (item.stepLinked !== undefined) {
+      const si = item.stepLinked, st = steps[si]; if (!st || si === 3) return;
+      const snip = st.tagsOnly || st.snippet; if (!snip) return;
+      const af = si === 4 && pickedPhoto ? `alt="${pickedPhoto.label}">` : st.insertAfter; if (!af) return;
+      const nc = doInsert(snip, af, code); setCode(nc);
+      if (st.tagsOnly) { requestAnimationFrame(() => { const ta = GhostEditor._textareaRef?.current; if (!ta) return; const ft = st.tagsOnly.trim().split("\n")[0].trim(); const ti = nc.indexOf(ft); if (ti !== -1) { const co = ft.indexOf("></"); if (co !== -1) { const p = ti + co + 1; ta.focus(); requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = p; }); } } }); }
+    }
+  }, [steps, code, doInsert, pickedPhoto]);
+
+  const handleAutoComplete = useCallback((ow) => { if (!effectiveSnippet || !effectiveInsertAfter) return; let base = ow ? stepEntryCode : code; const nc = doInsert(effectiveSnippet, effectiveInsertAfter, base); setCode(nc); }, [code, effectiveSnippet, effectiveInsertAfter, stepEntryCode, doInsert]);
+  const handleReset = useCallback(() => setCode(stepEntryCode), [stepEntryCode]);
+
+  const goNext = useCallback(() => { if (step >= steps.length - 1) return; const err = validateStep(step, code, pickedPhoto); if (err) { setValidationError(err); return; } setValidationError(null); setStep(step + 1); }, [step, steps, code, pickedPhoto]);
+
+  const copyAll = async () => { try { await navigator.clipboard.writeText(code); } catch { const ta = document.createElement("textarea"); ta.value = code; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); } };
+  const handleSave = useCallback(() => { const fn = `${name.toLowerCase().replace(/[^a-z0-9]/g, "-").substring(0, 20)}-website.html`; const blob = new Blob([code], { type: "text/html" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fn; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setSaved(true); setTimeout(() => setSaved(false), 3000); }, [code, name]);
+
+  const btnBase = { padding: "8px 20px", borderRadius: 8, border: "none", fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", cursor: "pointer", fontFamily: FONT_UI, transition: "all 0.2s" };
+
+  return (
+    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", fontFamily: FONT_UI, background: "#f1f5f4", overflow: "hidden" }}>
+      <div style={{ height: 44, minHeight: 44, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", padding: "0 16px", flexShrink: 0 }}>
+        <span style={{ position: "absolute", left: 16, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>Step {step + 1} / {steps.length}</span>
+        <h1 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "white", textTransform: "uppercase", letterSpacing: "1.5px" }}>Web Workshop</h1>
+        <span style={{ position: "absolute", right: 16, fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.65)" }}>{name}</span>
+      </div>
+      <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+        <div style={{ width: "50%", display: "flex", flexDirection: "column", borderRight: "1px solid #cbd5e1", background: "#fff", overflow: "hidden" }}>
+          <div style={{ padding: "12px 20px", borderBottom: "1px solid #e2e8f0", background: "#f8faf9", flexShrink: 0, overflowY: "auto", maxHeight: s.isPhotoPicker ? "55%" : "35%" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <h2 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "0.5px" }}>{step + 1}. {s.title}</h2>
+              {(s.substeps?.length > 0 || s.isPhotoPicker) && (() => { const allDone = s.substeps?.length > 0 ? s.substeps.every(ss => ss.check(code, pickedPhoto)) : isStepDone(step); return <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", padding: "2px 8px", borderRadius: 4, background: allDone ? "#dcfce7" : "#fef3c7", color: allDone ? "#166534" : "#92400e" }}>{allDone ? "✓ Done" : "To do"}</span>; })()}
+            </div>
+            <div style={{ fontWeight: 700, color: G, fontSize: 12.5, marginBottom: 4 }}>Goal: {s.goal}</div>
+            {s.substeps?.length > 0 && <div style={{ margin: "4px 0" }}>{s.substeps.map((ss, si) => { const done = ss.check(code, pickedPhoto); return (<div key={si} style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, lineHeight: 1.5, marginBottom: 2 }}><span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, background: done ? "#dcfce7" : "#f1f5f9", color: done ? "#166534" : "#64748b", border: done ? "1px solid #86efac" : "1px solid #e2e8f0", transition: "all 0.2s" }}>{done ? "✓" : si + 1}</span><span style={{ color: done ? "#64748b" : "#334155" }}>{ss.text}</span></div>); })}</div>}
+            {s.tips?.length > 0 && <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{s.tips.map((t, i) => <div key={i} style={{ paddingLeft: 4 }}>• {t}</div>)}</div>}
+            {s.isPhotoPicker && <InlinePhotoPicker onPick={handlePhotoPick} picked={pickedPhoto} />}
+          </div>
+          <ValidationBanner error={validationError} onDismiss={() => setValidationError(null)} />
+          <Toolbar currentStep={step} onToolClick={handleToolClick} setHoverMode={setHoverMode} />
+          <GhostEditor code={code} onChange={setCode} ghost={effectiveSnippet} insertAfter={effectiveInsertAfter} noGhost={s.noGhost} stepDone={isStepDone(step)} stepEntryCode={stepEntryCode} onAutoComplete={handleAutoComplete} onReset={handleReset} hoverMode={hoverMode} fullSnippetPresent={fullSnippetPresent(step)} errorLine={validationError?.line || null} />
+        </div>
+        <div style={{ width: "50%", display: "flex", flexDirection: "column", background: "#fff", overflow: "hidden" }}>
+          <div style={{ height: 34, minHeight: 34, display: "flex", alignItems: "center", padding: "0 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", flexShrink: 0 }}>
+            {["#ef4444","#eab308","#22c55e"].map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c, marginRight: 6 }} />)}
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "1px", marginLeft: 8 }}>Live Preview</span>
+          </div>
+          <iframe srcDoc={code || "<html><body style='display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;color:#94a3b8;'><p>Your page appears here as you type...</p></body></html>"} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} title="preview" sandbox="allow-scripts" />
+        </div>
+      </div>
+      <div style={{ height: 52, minHeight: 52, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", borderTop: "1px solid #cbd5e1", background: "#f8fafc", flexShrink: 0, gap: 12 }}>
+        <button onClick={() => step > 0 && setStep(step - 1)} style={{ ...btnBase, background: "transparent", color: "#475569", border: "1px solid #cbd5e1", opacity: step === 0 ? 0.4 : 1, pointerEvents: step === 0 ? "none" : "auto" }}>← Back</button>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>{steps.map((_, i) => <div key={i} onClick={() => setStep(i)} title={`Step ${i + 1}: ${steps[i].title}`} style={{ width: i === step ? 24 : 10, height: 10, borderRadius: i === step ? 5 : "50%", background: i === step ? G : i < step ? G : "#cbd5e1", opacity: i === step ? 1 : i < step ? 0.5 : 1, transition: "all 0.25s ease", cursor: "pointer" }} />)}</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {last ? (<><button onClick={copyAll} style={{ ...btnBase, background: "#7B3F00", color: "white" }}>Copy HTML</button><button onClick={handleSave} style={{ ...btnBase, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, color: "white" }}>{saved ? "✓ Saved!" : "Save as .html"}</button></>) : (<button onClick={goNext} style={{ ...btnBase, background: G, color: "white" }}>Next →</button>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ ROOT ═══ */
+export default function App() {
+  const [name, setName] = useState(null);
+  const [screen, setScreen] = useState(0); // 0=concepts, 1=controls, 2=workshop
+  if (!name) return <EntryScreen onStart={setName} />;
+  if (screen === 0) return <ConceptsScreen name={name} onContinue={() => setScreen(1)} />;
+  if (screen === 1) return <ControlsScreen onContinue={() => setScreen(2)} />;
+  return <Workshop name={name} />;
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
+  </script>
+</body>
+</html>
