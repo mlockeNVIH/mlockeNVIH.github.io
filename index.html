@@ -114,7 +114,7 @@ const buildSteps = (name) => [
       { text: "Insert <a> with href URL.", check: (c) => /href=["'][^"']+["']/i.test(_body(c)) },
       { text: "Add visible link text.", check: (c) => /<a[^>]*>[^<]+<\/a>/i.test(_body(c)) },
     ], tips: [],
-    snippet: `  <p>Learn more at <a href="https://www.w3schools.com" target="_blank">W3Schools.com</a></p>\n  <p>Make additional changes to your code in an online HTML viewer <a href="https://www.w3schools.com/tryit/" target="_blank">like this one</a>.</p>`,
+    snippet: `  <p>Learn more at <a href="https://www.w3schools.com" target="_blank">W3Schools.com</a></p>\n  <p>Make additional changes to your code in an online HTML viewer <a href="https://www.w3schools.com/tryit/" target="_blank">like this one</a>.</p>\n  <p>Learn how to host your website <a href="https://www.w3schools.com/howto/howto_website_host_staticwebsite.asp" target="_blank">here</a>.</p>`,
     tagsOnly: `  <p><a href="" target="_blank"></a></p>`, insertAfter: "</ul>",
   },
   {
