@@ -51,17 +51,18 @@ const ICONS = {
   style: svgIcon("M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-84 32-157t87.5-127Q255-819 329-850.5T480-882q150 0 255 105t105 255v56q0 58-41 99t-99 41q-33 0-62.5-16.5T591-390q-26 36-65.5 53T440-320q-75 0-127.5-52.5T260-500q0-75 52.5-127.5T440-680q75 0 127.5 52.5T620-500v78q0 25 17.5 43.5T680-360q25 0 42.5-18.5T740-422v-56q0-117-81.5-198.5T460-758q-117 0-198.5 81.5T180-478q0 117 81.5 198.5T460-198h220v80H480Zm-40-280q42 0 71-29t29-71q0-42-29-71t-71-29q-42 0-71 29t-29 71q0 42 29 71t71 29Z"),
 };
 const headingLabel = <span style={{ fontWeight: 800, fontSize: 13, fontFamily: FONT_UI, lineHeight: 1 }}>H<sub style={{ fontSize: "0.65em", verticalAlign: "baseline", position: "relative", top: "0.2em" }}>1</sub></span>;
+const h2Label = <span style={{ fontWeight: 800, fontSize: 13, fontFamily: FONT_UI, lineHeight: 1 }}>H<sub style={{ fontSize: "0.65em", verticalAlign: "baseline", position: "relative", top: "0.2em" }}>2</sub></span>;
 
 /* ═══ TOOLBAR CONFIG (trimmed) ═══ */
 const TOOLBAR_GROUPS = [
-  { label: "Headings", unlocksAt: 1, items: [{ key: "h1", label: "Heading", render: headingLabel, stepLinked: 1 }] },
+  { label: "Headings", unlocksAt: 1, items: [{ key: "h1", label: "Heading", render: headingLabel, stepLinked: 1 }, { key: "h2", label: "Subheading", render: h2Label, stepLinked: 4, unlocksAt: 4, itemTagsOnly: `  <h2></h2>` }] },
   { label: "Text", unlocksAt: 2, items: [{ key: "p", label: "Paragraph", render: ICONS.paragraph, stepLinked: 2 }] },
   { label: "Media", unlocksAt: 3, items: [{ key: "img", label: "Image", render: ICONS.image, stepLinked: 3 }] },
   { label: "Lists", unlocksAt: 4, items: [{ key: "ul", label: "Bulleted List", render: ICONS.ul, stepLinked: 4 }] },
   { label: "Links", unlocksAt: 5, items: [{ key: "a", label: "Link", render: ICONS.link, stepLinked: 5 }] },
   { label: "Style", unlocksAt: 6, items: [{ key: "style", label: "CSS Style", render: ICONS.style, stepLinked: 6 }] },
 ];
-const ALL_TOOLBAR_ITEMS = TOOLBAR_GROUPS.flatMap(g => g.items.map(it => ({ ...it, unlocksAt: g.unlocksAt })));
+const ALL_TOOLBAR_ITEMS = TOOLBAR_GROUPS.flatMap(g => g.items.map(it => ({ ...it, unlocksAt: it.unlocksAt !== undefined ? it.unlocksAt : g.unlocksAt })));
 
 /* ═══ HELPERS ═══ */
 const _body = (c) => { const m = c.match(/<body[^>]*>([\s\S]*)<\/body>/i); return m ? m[1] : ""; };
@@ -114,7 +115,7 @@ const buildSteps = (name) => [
       { text: "Insert <a> with href URL.", check: (c) => /href=["'][^"']+["']/i.test(_body(c)) },
       { text: "Add visible link text.", check: (c) => /<a[^>]*>[^<]+<\/a>/i.test(_body(c)) },
     ], tips: [],
-    snippet: `  <p>Learn more at <a href="https://www.w3schools.com" target="_blank">W3Schools.com</a></p>\n  <p>Make additional changes to your code in an online HTML viewer <a href="https://www.w3schools.com/tryit/" target="_blank">like this one</a>.</p>\n  <p>Learn how to host your website <a href="https://www.w3schools.com/howto/howto_website_host_staticwebsite.asp" target="_blank">here</a>.</p>`,
+    snippet: `  <p>Learn more at <a href="https://www.w3schools.com/html/" target="_blank">W3Schools.com</a></p>\n  <p>Make additional changes to your code in an online HTML viewer <a href="https://www.w3schools.com/tryit/" target="_blank">like this one</a>.</p>\n  <p>Learn how to host your website <a href="https://www.w3schools.com/howto/howto_website_host_staticwebsite.asp" target="_blank">here</a> or <a href="https://pages.github.com" target="_blank">here</a>.</p>`,
     tagsOnly: `  <p><a href="" target="_blank"></a></p>`, insertAfter: "</ul>",
   },
   {
@@ -343,6 +344,8 @@ function EntryScreen({ onStart }) {
 }
 
 function ConceptsScreen({ name, onContinue }) {
+  const sunsetPhoto = STOCK_PHOTOS.find(p => p.id === "sunset");
+  const previewHtml = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${name}'s Website</title><style>h1{color:#115139;border-bottom:3px solid #115139;padding-bottom:10px;}body{font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;background:#f0f4f3;color:#1a2e28;}h2{color:#0d3d1c;}img{border-radius:8px;margin:15px 0;max-width:100%;}a{color:#115139;font-weight:600;}ul{line-height:1.8;}</style></head><body><h1>Welcome to ${name}'s Page</h1><p>Hi! I'm ${name} and this is the first website I've ever built.</p><img src="${sunsetPhoto.url}" alt="${sunsetPhoto.label}"><h2>Things I Enjoy</h2><ul><li>Learning new skills</li><li>Helping people</li><li>Building websites!</li></ul><p>Learn more at <a href="https://www.w3schools.com/html/" target="_blank">W3Schools.com</a></p></body></html>`;
   const concepts = [
     { title: "Code = Instructions", desc: "Browser reads your file, displays the page." },
     { title: "Tags Come in Pairs", desc: "<h1>content</h1> — open, content, close." },
@@ -351,10 +354,29 @@ function ConceptsScreen({ name, onContinue }) {
     { title: "Three Types of Web Code", desc: "HTML = structure. CSS = style. JS = interactivity." },
   ];
   return (
-    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #0d3d1c 0%, #115139 40%, #1a6b50 100%)", fontFamily: FONT_UI, overflow: "auto", padding: "20px 0" }}>
-      <div style={{ background: "white", borderRadius: 16, padding: "32px 36px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", maxWidth: 540, width: "90%" }}>
-        <h1 style={{ margin: "0 0 4px 0", fontSize: 18, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", textAlign: "center" }}>Before We Build</h1>
-        <p style={{ margin: "0 0 20px 0", fontSize: 12, color: "#64748b", textAlign: "center" }}>Quick review, {name}.</p>
+    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", background: "linear-gradient(160deg, #0d3d1c 0%, #115139 40%, #1a6b50 100%)", fontFamily: FONT_UI, overflow: "auto", padding: "30px 0" }}>
+      <div style={{ background: "white", borderRadius: 16, padding: "32px 36px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", maxWidth: 580, width: "90%" }}>
+
+        {/* ── OBJECTIVE ── */}
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "14px 18px", marginBottom: 24, textAlign: "center" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 4 }}>Objective</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b", lineHeight: 1.5 }}>Create a basic web page which can be made accessible on the internet.</div>
+        </div>
+
+        {/* ── WHAT WE WILL BUILD ── */}
+        <h2 style={{ margin: "0 0 10px 0", fontSize: 15, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1px" }}>What We Will Build</h2>
+        <p style={{ margin: "0 0 10px 0", fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>By the end of this workshop, you will have built a styled personal web page like this:</p>
+        <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+          <div style={{ height: 28, display: "flex", alignItems: "center", padding: "0 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+            {["#ef4444","#eab308","#22c55e"].map((c, i) => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: c, marginRight: 5 }} />)}
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", marginLeft: 6 }}>Preview</span>
+          </div>
+          <iframe srcDoc={previewHtml} style={{ width: "100%", height: 320, border: "none", display: "block", background: "#f0f4f3" }} title="preview" sandbox="" />
+        </div>
+
+        {/* ── BEFORE WE BUILD ── */}
+        <h2 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1px" }}>Before We Build</h2>
+        <p style={{ margin: "0 0 14px 0", fontSize: 12, color: "#64748b" }}>Quick review, {name}.</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {concepts.map((c, i) => (
             <div key={i}>
@@ -362,11 +384,10 @@ function ConceptsScreen({ name, onContinue }) {
                 <span style={{ flexShrink: 0, width: 8, height: 8, borderRadius: "50%", background: G, marginTop: 5 }} />
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{c.title}</span>
-                  <span style={{ fontSize: 12, color: "#64748b", marginLeft: 6 }}>— {c.desc}</span>
+                  <span style={{ fontSize: 12, color: "#64748b", marginLeft: 6 }}>{"\u2014"} {c.desc}</span>
                 </div>
               </div>
-              {/* Visual examples */}
-              {i === 0 && <pre style={{ margin: "6px 0 0 18px", fontSize: 11, background: "#f1f5f9", padding: "6px 10px", borderRadius: 4, color: "#334155", fontFamily: FONT_MONO, lineHeight: 1.4 }}>{"<p>Hello World</p>  →  Browser shows: Hello World"}</pre>}
+              {i === 0 && <pre style={{ margin: "6px 0 0 18px", fontSize: 11, background: "#f1f5f9", padding: "6px 10px", borderRadius: 4, color: "#334155", fontFamily: FONT_MONO, lineHeight: 1.4 }}>{"<p>Hello World</p>  \u2192  Browser shows: Hello World"}</pre>}
               {i === 1 && <pre style={{ margin: "6px 0 0 18px", fontSize: 11, background: "#f1f5f9", padding: "6px 10px", borderRadius: 4, color: "#334155", fontFamily: FONT_MONO, lineHeight: 1.4 }}>{"<h1>My Title</h1>\n<p>My paragraph.</p>"}</pre>}
               {i === 2 && <pre style={{ margin: "6px 0 0 18px", fontSize: 11, background: "#f1f5f9", padding: "6px 10px", borderRadius: 4, color: "#334155", fontFamily: FONT_MONO, lineHeight: 1.4 }}>{"<body>\n  <ul>\n    <li>Item</li>\n  </ul>\n</body>"}</pre>}
               {i === 3 && <div style={{ margin: "6px 0 0 18px", display: "flex", gap: 12 }}><pre style={{ fontSize: 11, background: "#fef2f2", padding: "6px 10px", borderRadius: 4, color: "#991b1b", fontFamily: FONT_MONO, lineHeight: 1.4, flex: 1 }}>{"<ul>\n<li>Hard to read</li>\n</ul>"}</pre><pre style={{ fontSize: 11, background: "#f0fdf4", padding: "6px 10px", borderRadius: 4, color: "#166534", fontFamily: FONT_MONO, lineHeight: 1.4, flex: 1 }}>{"<ul>\n  <li>Easy!</li>\n</ul>"}</pre></div>}
@@ -381,30 +402,63 @@ function ConceptsScreen({ name, onContinue }) {
 }
 
 function ControlsScreen({ onContinue }) {
-  const ways = [
-    { label: "Type it yourself", desc: "Read the instructions, type the code into the editor.", difficulty: "DIY", color: "#2563eb" },
-    { label: "Toolbar button", desc: "Click a toolbar button to insert tags at the right spot. You fill in the content.", difficulty: "Easier", color: "#d97706" },
-    { label: "Auto-Complete", desc: "Click Auto-Complete (bottom-right of editor) to fill in the entire step.", difficulty: "Easiest", color: "#16a34a" },
-  ];
+  const tbBtnStyle = { minWidth: 30, height: 28, borderRadius: 4, padding: "0 4px", border: "none", background: "rgba(17,81,57,0.1)", color: G, display: "inline-flex", alignItems: "center", justifyContent: "center", outline: `2px solid ${G}`, outlineOffset: -1, cursor: "default" };
+  const acBtnStyle = { background: "rgba(17,81,57,0.85)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 14px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: FONT_UI, cursor: "default", display: "inline-block" };
   return (
     <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #0d3d1c 0%, #115139 40%, #1a6b50 100%)", fontFamily: FONT_UI }}>
-      <div style={{ background: "white", borderRadius: 16, padding: "32px 36px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", maxWidth: 480, width: "90%" }}>
+      <div style={{ background: "white", borderRadius: 16, padding: "32px 36px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", maxWidth: 500, width: "90%" }}>
         <h1 style={{ margin: "0 0 4px 0", fontSize: 18, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", textAlign: "center" }}>How It Works</h1>
-        <p style={{ margin: "0 0 20px 0", fontSize: 12, color: "#64748b", textAlign: "center" }}>Each step gives you instructions on the left and a live preview on the right.<br />Three ways to complete each step:</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {ways.map((w, i) => (
-            <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: "white", background: w.color, borderRadius: 4, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.5px", marginTop: 2 }}>{w.difficulty}</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{w.label}</div>
-                <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4 }}>{w.desc}</div>
+        <p style={{ margin: "0 0 20px 0", fontSize: 12, color: "#64748b", textAlign: "center" }}>Instructions on the left, live preview on the right.<br />Three ways to complete each step:</p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* DIY */}
+          <div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 4 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "white", background: "#2563eb", borderRadius: 4, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>DIY</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Type it yourself</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4, marginLeft: 58 }}>Read the instructions, type the code into the editor.</div>
+          </div>
+
+          {/* Toolbar */}
+          <div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "white", background: "#d97706", borderRadius: 4, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Easier</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Toolbar button</span>
+            </div>
+            <div style={{ marginLeft: 58, marginBottom: 6 }}>
+              <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4, marginBottom: 6 }}>Click a button to insert tags. You fill in the content.</div>
+              <div style={{ display: "inline-flex", gap: 4, padding: "6px 10px", background: "#f8faf9", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+                <span style={tbBtnStyle}>{headingLabel}</span>
+                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{h2Label}</span>
+                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.paragraph}</span>
+                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.image}</span>
+                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.ul}</span>
+                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.link}</span>
+                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.style}</span>
+              </div>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Buttons unlock as you progress through each step.</div>
+            </div>
+          </div>
+
+          {/* Auto-Complete */}
+          <div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "white", background: "#16a34a", borderRadius: 4, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Easiest</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Auto-Complete</span>
+            </div>
+            <div style={{ marginLeft: 58 }}>
+              <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4, marginBottom: 6 }}>Click this button (bottom-right of editor) to fill in the entire step.</div>
+              <div style={{ display: "inline-flex", padding: "8px 12px", background: "#1e293b", borderRadius: 6 }}>
+                <span style={acBtnStyle}>Auto-Complete</span>
               </div>
             </div>
-          ))}
+          </div>
         </div>
-        <div style={{ marginTop: 20, padding: "10px 14px", background: "#f8faf9", borderRadius: 8, border: `1px solid #e2e8f0` }}>
+
+        <div style={{ marginTop: 20, padding: "10px 14px", background: "#f8faf9", borderRadius: 8, border: "1px solid #e2e8f0" }}>
           <div style={{ fontSize: 11.5, color: "#475569", lineHeight: 1.5 }}>
-            <strong style={{ color: G }}>Also available:</strong> Reset Step undoes your changes. Next validates your work before advancing.
+            <strong style={{ color: G }}>Also available:</strong> <span style={{ background: "rgba(185,28,28,0.8)", color: "white", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Reset Step</span> undoes your changes. <span style={{ background: G, color: "white", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Next →</span> validates your work before advancing.
           </div>
         </div>
         <button onClick={onContinue} style={{ marginTop: 20, padding: "12px 40px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", cursor: "pointer", fontFamily: FONT_UI, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, color: "white", boxShadow: "0 4px 12px rgba(17,81,57,0.3)", width: "100%" }}>Start Building →</button>
@@ -425,7 +479,8 @@ function Toolbar({ currentStep, onToolClick, setHoverMode }) {
             {gi > 0 && <div style={{ width: 1, height: 20, background: "#e2e8f0", margin: "0 4px" }} />}
             {group.items.map(item => {
               const active = item.stepLinked !== undefined && currentStep === item.stepLinked;
-              const enabled = unlocked || isLast;
+              const itemUnlock = item.unlocksAt !== undefined ? item.unlocksAt : group.unlocksAt;
+              const enabled = currentStep >= itemUnlock || isLast;
               return (
                 <button key={item.key} onClick={() => enabled && onToolClick(item.key)}
                   onMouseEnter={() => active && setHoverMode("tags")} onMouseLeave={() => setHoverMode(null)}
@@ -434,7 +489,7 @@ function Toolbar({ currentStep, onToolClick, setHoverMode }) {
                   onMouseOver={(e) => enabled && !active && (e.currentTarget.style.background = "#f1f5f9")}
                   onMouseOut={(e) => !active && (e.currentTarget.style.background = "transparent")}>
                   {item.render}
-                  {!unlocked && !isLast && <div style={{ position: "absolute", top: -1, right: -1, width: 5, height: 5, borderRadius: "50%", background: "#cbd5e1" }} />}
+                  {!enabled && !isLast && <div style={{ position: "absolute", top: -1, right: -1, width: 5, height: 5, borderRadius: "50%", background: "#cbd5e1" }} />}
                 </button>
               );
             })}
@@ -477,10 +532,11 @@ function Workshop({ name }) {
     const item = ALL_TOOLBAR_ITEMS.find(t => t.key === key); if (!item) return;
     if (item.stepLinked !== undefined) {
       const si = item.stepLinked, st = steps[si]; if (!st || si === 3) return;
-      const snip = st.tagsOnly || st.snippet; if (!snip) return;
+      const snip = item.itemTagsOnly || st.tagsOnly || st.snippet; if (!snip) return;
       const af = si === 4 && pickedPhoto ? `alt="${pickedPhoto.label}">` : st.insertAfter; if (!af) return;
       const nc = doInsert(snip, af, code); setCode(nc);
-      if (st.tagsOnly) { requestAnimationFrame(() => { const ta = GhostEditor._textareaRef?.current; if (!ta) return; const ft = st.tagsOnly.trim().split("\n")[0].trim(); const ti = nc.indexOf(ft); if (ti !== -1) { const co = ft.indexOf("></"); if (co !== -1) { const p = ti + co + 1; ta.focus(); requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = p; }); } } }); }
+      const curTagsOnly = item.itemTagsOnly || st.tagsOnly;
+      if (curTagsOnly) { requestAnimationFrame(() => { const ta = GhostEditor._textareaRef?.current; if (!ta) return; const ft = curTagsOnly.trim().split("\n")[0].trim(); const ti = nc.indexOf(ft); if (ti !== -1) { const co = ft.indexOf("></"); if (co !== -1) { const p = ti + co + 1; ta.focus(); requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = p; }); } } }); }
     }
   }, [steps, code, doInsert, pickedPhoto]);
 
