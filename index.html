@@ -58,7 +58,7 @@ const TOOLBAR_GROUPS = [
   { label: "Headings", unlocksAt: 1, items: [{ key: "h1", label: "Heading", render: headingLabel, stepLinked: 1 }, { key: "h2", label: "Subheading", render: h2Label, stepLinked: 4, unlocksAt: 4, itemTagsOnly: `  <h2></h2>` }] },
   { label: "Text", unlocksAt: 2, items: [{ key: "p", label: "Paragraph", render: ICONS.paragraph, stepLinked: 2 }] },
   { label: "Media", unlocksAt: 3, items: [{ key: "img", label: "Image", render: ICONS.image, stepLinked: 3 }] },
-  { label: "Lists", unlocksAt: 4, items: [{ key: "ul", label: "Bulleted List", render: ICONS.ul, stepLinked: 4 }] },
+  { label: "Lists", unlocksAt: 4, items: [{ key: "ul", label: "Bulleted List", render: ICONS.ul, stepLinked: 4, itemTagsOnly: `  <ul>\n    <li></li>\n    <li></li>\n    <li></li>\n  </ul>` }] },
   { label: "Links", unlocksAt: 5, items: [{ key: "a", label: "Link", render: ICONS.link, stepLinked: 5 }] },
   { label: "Style", unlocksAt: 6, items: [{ key: "style", label: "CSS Style", render: ICONS.style, stepLinked: 6 }] },
 ];
@@ -280,7 +280,7 @@ function GhostEditor({ code, onChange, ghost, tagsOnly, insertAfter, noGhost, st
   const handleScroll = useCallback(() => { if (preRef.current && textareaRef.current) { preRef.current.scrollTop = textareaRef.current.scrollTop; preRef.current.scrollLeft = textareaRef.current.scrollLeft; setScrollTop(textareaRef.current.scrollTop); } }, []);
   const handleKey = (e) => { if (e.key === "Tab") { e.preventDefault(); const t = e.target, st = t.selectionStart, en = t.selectionEnd; const nc = t.value.substring(0, st) + "  " + t.value.substring(en); onChange(nc); requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = st + 2; }); } };
   useEffect(() => { GhostEditor._textareaRef = textareaRef; });
-  const activeGhost = useMemo(() => { if (noGhost || !ghost || !insertAfter || fullSnippetPresent) return null; if (!hoverMode) return null; if (hoverMode === "tags" && tagsOnly) return tagsOnly; if (hoverMode === "full") return ghost; if (hoverMode === "tags") return ghost; return null; }, [hoverMode, noGhost, ghost, tagsOnly, insertAfter, fullSnippetPresent]);
+  const activeGhost = useMemo(() => { if (noGhost || !ghost || !insertAfter || fullSnippetPresent) return null; if (!hoverMode) return null; if (typeof hoverMode === "object" && hoverMode.itemGhost) return hoverMode.itemGhost; if (hoverMode === "tags" && tagsOnly) return tagsOnly; if (hoverMode === "full") return ghost; if (hoverMode === "tags") return ghost; return null; }, [hoverMode, noGhost, ghost, tagsOnly, insertAfter, fullSnippetPresent]);
   const currentStepAdditions = useMemo(() => { if (!stepEntryCode && stepEntryCode !== "") return null; if (code === stepEntryCode) return null; let start = 0; while (start < stepEntryCode.length && start < code.length && code[start] === stepEntryCode[start]) start++; let eo = stepEntryCode.length - 1, en = code.length - 1; while (eo > start && en > start && code[en] === stepEntryCode[eo]) { eo--; en--; } if (en < start) return null; return { start, end: en + 1 }; }, [code, stepEntryCode]);
   const segments = useMemo(() => {
     const parts = []; let base;
@@ -359,7 +359,7 @@ function ConceptsScreen({ name, onContinue }) {
 
         {/* ── OBJECTIVE ── */}
         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "14px 18px", marginBottom: 24, textAlign: "center" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 4 }}>Objective</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 4 }}>Objective</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b", lineHeight: 1.5 }}>Create a basic web page which can be made accessible on the internet.</div>
         </div>
 
@@ -420,66 +420,76 @@ function ConceptsScreen({ name, onContinue }) {
 }
 
 function ControlsScreen({ onContinue }) {
-  const tbBtnStyle = { minWidth: 30, height: 28, borderRadius: 4, padding: "0 4px", border: "none", background: "rgba(17,81,57,0.1)", color: G, display: "inline-flex", alignItems: "center", justifyContent: "center", outline: `2px solid ${G}`, outlineOffset: -1, cursor: "default" };
-  const acBtnStyle = { background: "rgba(17,81,57,0.85)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 14px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: FONT_UI, cursor: "default", display: "inline-block" };
+  const calloutStyle = (bg) => ({ fontSize: 9, fontWeight: 700, color: "white", background: bg, borderRadius: 4, padding: "2px 7px", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", lineHeight: 1.4 });
+  const descStyle = { fontSize: 11.5, color: "#475569", lineHeight: 1.5, marginTop: 2 };
   return (
-    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #0d3d1c 0%, #115139 40%, #1a6b50 100%)", fontFamily: FONT_UI }}>
-      <div style={{ background: "white", borderRadius: 16, padding: "32px 36px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", maxWidth: 560, width: "90%" }}>
+    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", background: "linear-gradient(160deg, #0d3d1c 0%, #115139 40%, #1a6b50 100%)", fontFamily: FONT_UI, overflow: "auto", padding: "30px 0" }}>
+      <div style={{ background: "white", borderRadius: 16, padding: "32px 36px", boxShadow: "0 25px 50px rgba(0,0,0,0.25)", maxWidth: 600, width: "90%" }}>
         <h1 style={{ margin: "0 0 4px 0", fontSize: 18, fontWeight: 700, color: G, textTransform: "uppercase", letterSpacing: "1.5px", textAlign: "center" }}>How It Works</h1>
-        <p style={{ margin: "0 0 20px 0", fontSize: 12, color: "#64748b", textAlign: "center" }}>Instructions on the left, live preview on the right.<br />Three ways to complete each step:</p>
+        <p style={{ margin: "0 0 16px 0", fontSize: 12, color: "#64748b", textAlign: "center" }}>Instructions on the left, live preview on the right.<br />Three ways to complete each step:</p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* DIY */}
-          <div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 4 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "white", background: "#2563eb", borderRadius: 4, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>DIY</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Type it yourself</span>
-            </div>
-            <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4, marginLeft: 58 }}>Read the instructions, type the code into the editor.</div>
-          </div>
-
+        {/* ── EDITOR MOCKUP ── */}
+        <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #cbd5e1", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
           {/* Toolbar */}
-          <div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "white", background: "#d97706", borderRadius: 4, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Easier</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Toolbar button</span>
+          <div style={{ height: 34, display: "flex", alignItems: "center", padding: "0 8px", gap: 2, borderBottom: "1px solid #e2e8f0", background: "#f8faf9", position: "relative" }}>
+            <div style={{ display: "flex", gap: 3 }}>
+              <span style={{ minWidth: 28, height: 26, borderRadius: 4, padding: "0 4px", border: "none", background: "rgba(17,81,57,0.1)", color: G, display: "inline-flex", alignItems: "center", justifyContent: "center", outline: `2px solid ${G}`, outlineOffset: -1 }}>{headingLabel}</span>
+              <span style={{ minWidth: 28, height: 26, borderRadius: 4, padding: "0 4px", border: "none", background: "transparent", color: "#cbd5e1", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{h2Label}</span>
+              <div style={{ width: 1, height: 18, background: "#e2e8f0", margin: "0 3px" }} />
+              <span style={{ minWidth: 28, height: 26, borderRadius: 4, padding: "0 4px", border: "none", background: "transparent", color: "#cbd5e1", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{ICONS.paragraph}</span>
+              <div style={{ width: 1, height: 18, background: "#e2e8f0", margin: "0 3px" }} />
+              <span style={{ minWidth: 28, height: 26, borderRadius: 4, padding: "0 4px", border: "none", background: "transparent", color: "#cbd5e1", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{ICONS.image}</span>
+              <div style={{ width: 1, height: 18, background: "#e2e8f0", margin: "0 3px" }} />
+              <span style={{ minWidth: 28, height: 26, borderRadius: 4, padding: "0 4px", border: "none", background: "transparent", color: "#cbd5e1", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{ICONS.ul}</span>
+              <div style={{ width: 1, height: 18, background: "#e2e8f0", margin: "0 3px" }} />
+              <span style={{ minWidth: 28, height: 26, borderRadius: 4, padding: "0 4px", border: "none", background: "transparent", color: "#cbd5e1", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{ICONS.link}</span>
+              <div style={{ width: 1, height: 18, background: "#e2e8f0", margin: "0 3px" }} />
+              <span style={{ minWidth: 28, height: 26, borderRadius: 4, padding: "0 4px", border: "none", background: "transparent", color: "#cbd5e1", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{ICONS.style}</span>
             </div>
-            <div style={{ marginLeft: 58, marginBottom: 6 }}>
-              <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4, marginBottom: 6 }}>Click a button to insert tags. You fill in the content.</div>
-              <div style={{ display: "inline-flex", gap: 4, padding: "6px 10px", background: "#f8faf9", borderRadius: 6, border: "1px solid #e2e8f0" }}>
-                <span style={tbBtnStyle}>{headingLabel}</span>
-                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{h2Label}</span>
-                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.paragraph}</span>
-                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.image}</span>
-                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.ul}</span>
-                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.link}</span>
-                <span style={{ ...tbBtnStyle, outline: "none", color: "#cbd5e1", background: "transparent" }}>{ICONS.style}</span>
-              </div>
-              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Buttons unlock as you progress through each step.</div>
-            </div>
+            <div style={{ flex: 1 }} />
+            <span style={{ fontSize: 8, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Toolbar</span>
           </div>
 
-          {/* Auto-Complete */}
-          <div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "white", background: "#16a34a", borderRadius: 4, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Easiest</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Auto-Complete</span>
+          {/* Code area */}
+          <div style={{ background: "#1e293b", padding: "14px 16px", fontFamily: FONT_MONO, fontSize: 12, lineHeight: 1.7, position: "relative", minHeight: 150 }}>
+            <div><span style={{ color: "#e2e8f0" }}>{"<body>"}</span></div>
+            <div style={{ display: "flex" }}>
+              <span style={{ color: "#e2e8f0" }}>{"  "}</span>
+              <span style={{ color: "#e2e8f0" }}>{"<h1>"}</span>
+              <span style={{ color: "#e2e8f0", background: "rgba(34,197,94,0.15)", borderRadius: 2, padding: "0 2px" }}>{"type here"}</span>
+              <span style={{ color: "#e2e8f0" }}>{"</h1>"}</span>
             </div>
-            <div style={{ marginLeft: 58 }}>
-              <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4, marginBottom: 6 }}>Click this button (bottom-right of editor) to fill in the entire step.</div>
-              <div style={{ display: "inline-flex", padding: "8px 12px", background: "#1e293b", borderRadius: 6 }}>
-                <span style={acBtnStyle}>Auto-Complete</span>
-              </div>
+            <div><span style={{ color: "rgba(120,200,160,0.45)", fontStyle: "italic" }}>{"  <p></p>"}</span></div>
+            <div><span style={{ color: "#e2e8f0" }}>{"</body>"}</span></div>
+            {/* Auto-Complete button */}
+            <div style={{ position: "absolute", bottom: 10, right: 12 }}>
+              <span style={{ background: "rgba(17,81,57,0.85)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "5px 12px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: FONT_UI }}>Auto-Complete</span>
             </div>
           </div>
         </div>
 
-        <div style={{ marginTop: 20, padding: "10px 14px", background: "#f8faf9", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+        {/* ── LEGEND ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={calloutStyle("#2563eb")}>1 · DIY</span>
+            <div style={descStyle}>Type the code yourself directly into the editor. <span style={{ color: "#e2e8f0", background: "#1e293b", borderRadius: 3, padding: "1px 5px", fontFamily: FONT_MONO, fontSize: 10 }}>type here</span> shows where to write.</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={calloutStyle("#d97706")}>2 · Toolbar</span>
+            <div style={descStyle}>Click the highlighted toolbar button to insert empty tags. You fill in the content. Buttons unlock as you progress.</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={calloutStyle("#16a34a")}>3 · Auto-Complete</span>
+            <div style={descStyle}>Click <span style={{ background: "rgba(17,81,57,0.85)", color: "white", borderRadius: 4, padding: "1px 7px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: FONT_UI }}>Auto-Complete</span> in the bottom-right to fill in the entire step. <span style={{ color: "rgba(120,200,160,0.55)", fontFamily: FONT_MONO, fontSize: 10, fontStyle: "italic" }}>Ghost text</span> previews what will be inserted.</div>
+          </div>
+        </div>
+
+        <div style={{ padding: "10px 14px", background: "#f8faf9", borderRadius: 8, border: "1px solid #e2e8f0", marginBottom: 16 }}>
           <div style={{ fontSize: 11.5, color: "#475569", lineHeight: 1.5 }}>
             <strong style={{ color: G }}>Also available:</strong> <span style={{ background: "rgba(185,28,28,0.8)", color: "white", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Reset Step</span> undoes your changes. <span style={{ background: G, color: "white", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Next →</span> validates your work before advancing.
           </div>
         </div>
-        <button onClick={onContinue} style={{ marginTop: 20, padding: "12px 40px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", cursor: "pointer", fontFamily: FONT_UI, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, color: "white", boxShadow: "0 4px 12px rgba(17,81,57,0.3)", width: "100%" }}>Start Building →</button>
+        <button onClick={onContinue} style={{ padding: "12px 40px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", cursor: "pointer", fontFamily: FONT_UI, background: `linear-gradient(135deg, ${G} 0%, #0d3d1c 100%)`, color: "white", boxShadow: "0 4px 12px rgba(17,81,57,0.3)", width: "100%" }}>Start Building →</button>
       </div>
     </div>
   );
@@ -501,7 +511,7 @@ function Toolbar({ currentStep, onToolClick, setHoverMode }) {
               const enabled = currentStep >= itemUnlock || isLast;
               return (
                 <button key={item.key} onClick={() => enabled && onToolClick(item.key)}
-                  onMouseEnter={() => active && setHoverMode("tags")} onMouseLeave={() => setHoverMode(null)}
+                  onMouseEnter={() => active && setHoverMode(item.itemTagsOnly ? { mode: "tags", itemGhost: item.itemTagsOnly } : "tags")} onMouseLeave={() => setHoverMode(null)}
                   title={enabled ? item.label : `Unlocks later`}
                   style={{ minWidth: 30, height: 28, borderRadius: 4, padding: "0 4px", border: "none", cursor: enabled ? "pointer" : "default", background: active ? "rgba(17,81,57,0.1)" : "transparent", color: enabled ? (active ? G : "#475569") : "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s", position: "relative", outline: active ? `2px solid ${G}` : "none", outlineOffset: -1 }}
                   onMouseOver={(e) => enabled && !active && (e.currentTarget.style.background = "#f1f5f9")}
